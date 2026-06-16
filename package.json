@@ -1,0 +1,41 @@
+{
+  "name": "openclaw-plugin-microsoft365",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Microsoft 365 workflow guidance for OpenClaw using the official CLI for Microsoft 365.",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "README.md",
+    "skills"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.6.6",
+      "minGatewayVersion": "2026.6.6"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/coccoinomane/openclaw-plugin-microsoft365.git"
+  },
+  "homepage": "https://github.com/coccoinomane/openclaw-plugin-microsoft365#readme",
+  "bugs": {
+    "url": "https://github.com/coccoinomane/openclaw-plugin-microsoft365/issues"
+  },
+  "peerDependencies": {
+    "@pnp/cli-microsoft365": ">=11.0.0",
+    "openclaw": ">=2026.6.6"
+  },
+  "peerDependenciesMeta": {
+    "@pnp/cli-microsoft365": {
+      "optional": true
+    }
+  }
+}
