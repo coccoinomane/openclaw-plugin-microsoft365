@@ -1,11 +1,11 @@
 # OpenClaw Microsoft 365 Plugin
 
-Microsoft 365 workflow guidance for OpenClaw, built around the official [CLI for Microsoft 365](https://github.com/pnp/cli-microsoft365) (`m365`).
+Connect a Microsoft 365 account to OpenClaw via the [CLI for Microsoft 365](https://github.com/pnp/cli-microsoft365) (`m365`).
 
 This plugin intentionally does **not** implement a custom Microsoft Graph SDK wrapper. It provides:
 
 - an OpenClaw plugin manifest and runtime entry;
-- an English skill/bootstrap guide for agents;
+- a skill and bootstrap guide for agents;
 - `resolve_exec_env` defaults for `m365` authentication (`CLIMICROSOFT365_ENTRAAPPID`, `CLIMICROSOFT365_TENANT`);
 - convenient `M365_*` environment variables for agent snippets;
 - command patterns for Outlook, Calendar, SharePoint, OneDrive/Office files, OneNote, To Do, Planner, Teams and raw Microsoft Graph.
