@@ -39,7 +39,6 @@ Required operator configuration:
 - `M365_CLIENT_ID` or plugin config `clientId`
 - optional `M365_ACCOUNT` / plugin config `account`
 - optional `M365_CONNECTION_NAME` / plugin config `connectionName`
-- optional `M365_SCOPES` / plugin config `scopes`
 
 The plugin contributes these exec environment variables when configured:
 
@@ -49,7 +48,6 @@ The plugin contributes these exec environment variables when configured:
 - `M365_CLIENT_ID`
 - `M365_ACCOUNT`
 - `M365_CONNECTION_NAME`
-- `M365_SCOPES`
 
 Login:
 
@@ -68,7 +66,7 @@ m365_cli status --output json
 m365_cli util accesstoken get --resource https://graph.microsoft.com --decoded --output json
 ```
 
-If Graph calls return `403`, inspect the decoded token `scp` claim. After permissions/admin consent change, run `m365_cli logout` and login again to refresh scopes.
+If Graph calls return `403`, inspect the decoded token `scp` claim. After permissions/admin consent change, run `m365_cli logout` and login again to refresh the token.
 
 ## Recommended delegated Graph scopes
 

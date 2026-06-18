@@ -2,7 +2,7 @@
   "id": "microsoft365",
   "name": "Microsoft 365",
   "description": "Adds Microsoft 365 workflow guidance using the official CLI for Microsoft 365 as backend.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "skills": [
     "skills"
   ],
@@ -28,20 +28,6 @@
       "connectionName": {
         "type": "string",
         "description": "Optional CLI for Microsoft 365 connection name. Defaults to openclaw-microsoft365."
-      },
-      "scopes": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        ],
-        "description": "Optional delegated Graph scopes, used only as a convenience env value for setup snippets."
       }
     }
   },
@@ -61,10 +47,6 @@
     "connectionName": {
       "label": "CLI connection name",
       "placeholder": "openclaw-microsoft365"
-    },
-    "scopes": {
-      "label": "Delegated Graph scopes",
-      "placeholder": "openid profile email offline_access User.Read Mail.ReadWrite ..."
     }
   },
   "setup": {
@@ -75,8 +57,7 @@
           "M365_TENANT_ID",
           "M365_CLIENT_ID",
           "M365_ACCOUNT",
-          "M365_CONNECTION_NAME",
-          "M365_SCOPES"
+          "M365_CONNECTION_NAME"
         ]
       }
     ]

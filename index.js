@@ -22,13 +22,6 @@ const configSchema = {
     connectionName: {
       type: "string",
       description: "Optional CLI for Microsoft 365 connection name. Defaults to openclaw-microsoft365."
-    },
-    scopes: {
-      anyOf: [
-        { type: "string" },
-        { type: "array", items: { type: "string" } }
-      ],
-      description: "Optional delegated Graph scopes, used only as a convenience env value for setup snippets."
     }
   }
 };
@@ -59,19 +52,6 @@ function configString(config, key, envKey, defaultValue) {
   );
 }
 
-function configScopes(config) {
-  const configured = config?.scopes;
-  if (Array.isArray(configured)) {
-    const scopes = configured.map((scope) => cleanString(resolveEnvReference(scope))).filter(Boolean);
-    if (scopes.length > 0) return scopes.join(" ");
-  }
-
-  return (
-    cleanString(resolveEnvReference(configured)) ??
-    cleanString(process.env.M365_SCOPES)
-  );
-}
-
 export default definePluginEntry({
   id: PLUGIN_ID,
   name: "Microsoft 365",
@@ -86,7 +66,6 @@ export default definePluginEntry({
       const clientId = configString(cfg, "clientId", "M365_CLIENT_ID");
       const account = configString(cfg, "account", "M365_ACCOUNT");
       const connectionName = configString(cfg, "connectionName", "M365_CONNECTION_NAME", DEFAULT_CONNECTION_NAME);
-      const scopes = configScopes(cfg);
 
       // CLI for Microsoft 365 recognizes these variables as authentication defaults.
       if (tenantId) env.CLIMICROSOFT365_TENANT = tenantId;
@@ -97,7 +76,6 @@ export default definePluginEntry({
       if (clientId) env.M365_CLIENT_ID = clientId;
       if (account) env.M365_ACCOUNT = account;
       if (connectionName) env.M365_CONNECTION_NAME = connectionName;
-      if (scopes) env.M365_SCOPES = scopes;
 
       return env;
     }, { priority: 20 });

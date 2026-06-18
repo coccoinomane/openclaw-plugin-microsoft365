@@ -64,7 +64,7 @@ m365_cli status --output json
 Preferred install, matching the other Git-managed OpenClaw Casa plugins:
 
 ```bash
-openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.0
+openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.1
 ```
 
 Then enable/configure the plugin in OpenClaw config:
@@ -79,8 +79,7 @@ Then enable/configure the plugin in OpenClaw config:
           tenantId: "${M365_TENANT_ID}",
           clientId: "${M365_CLIENT_ID}",
           account: "${M365_ACCOUNT}",
-          connectionName: "${M365_CONNECTION_NAME}",
-          scopes: "${M365_SCOPES}"
+          connectionName: "${M365_CONNECTION_NAME}"
         }
       }
     }
@@ -100,9 +99,8 @@ The runtime hook contributes these variables to `exec` calls when configured:
 - `M365_CLIENT_ID`
 - `M365_ACCOUNT`
 - `M365_CONNECTION_NAME`
-- `M365_SCOPES`
 
-`M365_SCOPES` is a documentation/convenience value for setup snippets. The actual permissions in an access token come from the delegated permissions configured and consented on the Entra app.
+The actual Graph permissions in an access token come from the delegated permissions configured and consented on the Entra app, not from an OpenClaw environment variable.
 
 ## Connect a Microsoft 365 account
 
@@ -184,7 +182,6 @@ M365_TENANT_ID=<tenant-guid-or-verified-domain>
 M365_CLIENT_ID=<application-client-id>
 M365_ACCOUNT=user@example.com
 M365_CONNECTION_NAME=openclaw-microsoft365
-M365_SCOPES="openid profile email offline_access User.Read Mail.ReadWrite Mail.Send MailboxSettings.ReadWrite Calendars.ReadWrite Contacts.ReadWrite People.Read.All Files.ReadWrite.All Sites.ReadWrite.All Notes.ReadWrite Notes.ReadWrite.All Tasks.ReadWrite Tasks.ReadWrite.Shared Group.ReadWrite.All Directory.Read.All Team.ReadBasic.All Channel.ReadBasic.All ChannelMessage.Send Chat.ReadWrite OnlineMeetings.ReadWrite"
 ```
 
 The official CLI recognizes:
