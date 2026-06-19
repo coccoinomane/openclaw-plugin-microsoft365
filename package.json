@@ -1,6 +1,6 @@
 {
   "name": "openclaw-plugin-microsoft365",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "Microsoft 365 workflow guidance for OpenClaw using the official CLI for Microsoft 365.",
   "type": "module",

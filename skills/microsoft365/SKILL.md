@@ -105,6 +105,8 @@ PowerPoint, Word, and Excel are usually handled as Office files in OneDrive/Shar
 Prefer these defaults:
 
 - **Email list/search/read/mark read/draft**: use `m365 request --url @graph/...` raw Graph. It gives better `$select`, `$filter`, `$search`, `$top`, and PATCH support than high-level commands.
+- **Unread/recent Outlook mail for briefs or monitoring**: use Graph server-side filtering via `m365 request --url` with `$filter=isRead eq false` plus the date/folder constraint. Do **not** use `m365 outlook message list` with a `--query` unread filter as the primary unread filter for recurring jobs: `--query` is JMESPath client-side after retrieval, so it can be slow and can miss relevant messages if a bounded/page-limited result is filtered locally.
+- **High-level Outlook message list**: `m365 outlook message list` is a standard CLI command and is fine for quick/manual checks, especially with `--folderName`, `--startTime`, and `--endTime`; treat `--query` as local post-filtering, not Graph server-side filtering.
 - **Direct email send**: high-level `m365 outlook mail send` exists, but it sends immediately. Use only after explicit user send request + confirmation.
 - **Draft email**: no high-level draft command in CLI v11.8.0. Use Graph `POST /me/messages`.
 - **Calendar agenda**: use raw Graph `calendarView`; it is faster than high-level `outlook event list` and does not require discovering calendar IDs.
@@ -129,17 +131,33 @@ m365_cli request \
   --output json
 ```
 
-### Unread email
+### Unread Inbox email with server-side filtering
 
-Graph can be picky when combining `$filter` and `$orderby`. Fetch unread messages, then sort locally:
+For unread mail, especially recurring briefs/monitoring, filter server-side with Graph through the CLI. Keep both `isRead eq false` and the date/folder constraint in the URL; only sort locally if Graph rejects `$orderby`.
 
 ```bash
 m365_cli request \
-  --url '@graph/me/messages?$filter=isRead eq false&$top=50&$select=id,receivedDateTime,from,subject,bodyPreview,isRead,importance,webLink,parentFolderId' \
+  --url '@graph/me/mailFolders/inbox/messages?$filter=isRead eq false and receivedDateTime ge 2026-06-18T00:00:00Z&$top=50&$select=id,receivedDateTime,from,subject,bodyPreview,isRead,importance,webLink&$orderby=receivedDateTime desc' \
+  --output json
+```
+
+If Graph rejects the `$filter` + `$orderby` combination, retry without `$orderby` but keep the server-side unread/date filter, then sort locally:
+
+```bash
+m365_cli request \
+  --url '@graph/me/mailFolders/inbox/messages?$filter=isRead eq false and receivedDateTime ge 2026-06-18T00:00:00Z&$top=50&$select=id,receivedDateTime,from,subject,bodyPreview,isRead,importance,webLink' \
   --output json > /tmp/m365-unread.json
 
 jq '.value | sort_by(.receivedDateTime) | reverse | map({receivedDateTime, from: .from.emailAddress, subject, isRead, importance, bodyPreview, webLink})' /tmp/m365-unread.json
 ```
+
+Avoid this as the primary implementation for briefs:
+
+```bash
+m365_cli outlook message list --folderName Inbox --query '[?isRead==`false`]' --output json
+```
+
+That command is standard CLI, but `--query` is client-side JMESPath filtering after retrieval. Use it only as a manual/small fallback when server-side Graph filtering is unavailable.
 
 ### Folder unread counts
 

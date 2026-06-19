@@ -2,7 +2,7 @@
   "id": "microsoft365",
   "name": "Microsoft 365",
   "description": "Adds Microsoft 365 workflow guidance using the official CLI for Microsoft 365 as backend.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "skills": [
     "skills"
   ],
