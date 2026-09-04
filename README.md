@@ -64,7 +64,7 @@ m365_cli status --output json
 Preferred install, matching the other Git-managed OpenClaw Casa plugins:
 
 ```bash
-openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.1
+openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.2
 ```
 
 Then enable/configure the plugin in OpenClaw config:
