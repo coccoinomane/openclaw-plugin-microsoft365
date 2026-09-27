@@ -64,7 +64,7 @@ m365_cli status --output json
 Preferred install, matching the other Git-managed OpenClaw Casa plugins:
 
 ```bash
-openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.2
+openclaw plugins install git:github.com/coccoinomane/openclaw-plugin-microsoft365@v0.1.3
 ```
 
 Then enable/configure the plugin in OpenClaw config:
@@ -280,6 +280,10 @@ Example OneDrive root listing:
 ```bash
 m365_cli request --url "https://graph.microsoft.com/v1.0/me/drive/root/children?\$select=id,name,webUrl,size,lastModifiedDateTime,file,folder" --output json
 ```
+
+## Formatted Outlook drafts
+
+The Microsoft 365 skill includes HTML new-message and reply drafts, PATCH-first edits that preserve user changes, readback checks, and Outlook web links. Replacement is reserved for diagnosed failures, with verification before deleting the old draft. Reply quotation and attachment preservation require separate checks; the controlled PATCH test covered a new draft only.
 
 ## Troubleshooting
 

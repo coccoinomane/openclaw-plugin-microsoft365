@@ -203,22 +203,27 @@ m365_cli request \
 
 Use `{"isRead": false}` to mark unread.
 
-### Create an email draft by default
+### Create and edit formatted email drafts
 
-Default to drafts, not direct sends:
+Draft by default; sending requires an explicit request plus confirmation. Read the original message or current draft first and confirm the account, recipients, subject and conversation. Use HTML unless the user asks for plain text.
+
+Use `<p>`, `<ul><li>`, `<strong>`, `<a>` and `<br>` for formatting, with simple inline styles for fonts and spacing when needed. Escape inserted text and attribute values (for example, Python `html.escape`); validate link URLs before inserting them. Do not escape the completed HTML markup. Serialize payloads as UTF-8 JSON files rather than interpolating JSON in shell commands. Markdown, literal newlines, CSS classes and external stylesheets are not substitutes for email HTML.
+
+#### New message
+
+`POST /me/messages` accepts `body` directly, without a `message` wrapper:
 
 ```bash
 cat > /tmp/m365-draft.json <<'JSON'
 {
   "subject": "Subject here",
-  "body": { "contentType": "Text", "content": "Message body here" },
-  "toRecipients": [
-    { "emailAddress": { "address": "person@example.com" } }
-  ],
-  "ccRecipients": []
+  "body": {
+    "contentType": "HTML",
+    "content": "<p>Hello,</p><ul><li><strong>Topic:</strong> detail</li></ul>"
+  },
+  "toRecipients": [{"emailAddress": {"address": "person@example.com"}}]
 }
 JSON
-
 m365_cli request \
   --method post \
   --url '@graph/me/messages' \
@@ -227,7 +232,72 @@ m365_cli request \
   --output json
 ```
 
-The response contains the draft `id` and `webLink`. Share the Outlook web link with the user when useful.
+Use a private, per-task directory for payloads and readbacks containing mailbox data; the `/tmp` filenames in these examples are placeholders.
+
+#### Reply draft
+
+For a formatted reply, `POST /me/messages/{originalId}/createReply` uses a `message` wrapper. Do not use a plain-text `comment` for rich-text replies; line breaks can collapse. Do not submit both `comment` and `message.body`.
+
+```bash
+cat > /tmp/m365-reply.json <<'JSON'
+{
+  "message": {
+    "body": {
+      "contentType": "HTML",
+      "content": "<p>Hello,</p><ul><li><strong>Topic:</strong> detail</li></ul>"
+    }
+  }
+}
+JSON
+m365_cli request \
+  --method post \
+  --url "@graph/me/messages/$ORIGINAL_ID/createReply" \
+  --body @/tmp/m365-reply.json \
+  --content-type 'application/json' \
+  --output json
+```
+
+Preserve the intended recipients, subject and quoted thread. Do not assume that supplying `message.body` preserves the quoted message or that reply creation copies attachments. Inspect the generated draft and attachment collection, including inline images, and retain or restore required material before declaring it complete. Use a reply operation rather than a new unrelated message when conversation continuity matters.
+
+#### Existing draft: PATCH first
+
+Read the latest draft immediately before editing. Confirm `isDraft: true`, preserve user edits, and PATCH only fields the user asked to change. Omitting recipients or subject preserves them; replacing `body` replaces the entire body, so merge the requested edits with the current HTML, including signatures and quoted content. If a fresh read shows intervening changes, reconcile them before writing; do not overwrite from a stale snapshot. Attachment changes require their own Graph operations and explicit intent.
+
+```bash
+cat > /tmp/m365-draft-patch.json <<'JSON'
+{
+  "body": {
+    "contentType": "HTML",
+    "content": "<p>Hello,</p><ul><li><strong>Updated topic:</strong> detail</li></ul>"
+  }
+}
+JSON
+m365_cli request \
+  --method patch \
+  --url "@graph/me/messages/$DRAFT_ID" \
+  --body @/tmp/m365-draft-patch.json \
+  --content-type 'application/json' \
+  --output json
+```
+
+The body above is illustrative; construct the actual payload from the current draft. Add `subject` only when it needs changing. Methods must be lowercase and JSON requests must include `--content-type 'application/json'`.
+
+A controlled test on 2026-09-27 confirmed that PATCH updated a new draft's subject and HTML body while keeping the same ID, `isDraft: true`, and `<ul>`, `<li>` and `<strong>` elements. That test did not cover reply quotations or attachments. There is no blanket restriction against editing existing drafts.
+
+Replacement is a fallback only when a specific, diagnosed failure prevents an in-place update. Explain the reason; do not replace drafts merely to fix formatting. Preserve user edits, recipients, subject, quoted content and required attachments, create the replacement, then verify it before deleting the old draft. Re-read the old draft before deletion to avoid losing intervening edits. If preservation or verification is uncertain, keep the original and report the issue.
+
+#### Read back and return the saved draft
+
+After creation or PATCH, read the saved draft rather than trusting the write response alone:
+
+```bash
+m365_cli request \
+  --method get \
+  --url "@graph/me/messages/$DRAFT_ID?\$select=id,isDraft,subject,body,toRecipients,ccRecipients,bccRecipients,conversationId,hasAttachments,webLink,lastModifiedDateTime" \
+  --output json
+```
+
+Check `isDraft`, expected ID (unchanged for PATCH), subject, recipients, conversation, HTML content type and the expected paragraph/list/bold tags. Inspect attachments separately when relevant; `hasAttachments` alone does not account for inline-only attachments. Inspect rendering when possible, and distinguish HTML/readback verification from a visual check. Return the saved draft's Outlook `webLink`; after replacement return the new link, never the deleted draft's link. Never send as part of verification.
 
 ### Send a draft only after explicit confirmation
 
