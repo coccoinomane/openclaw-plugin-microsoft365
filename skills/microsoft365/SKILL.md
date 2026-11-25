@@ -29,13 +29,13 @@ For one-off `exec` calls, it is fine to inline:
 npx -y -p @pnp/cli-microsoft365 m365 status --output json
 ```
 
-Use `--output json` for metadata; use `--filePath` for email bodies as required below.
+Use `--output json` for metadata; use `--filePath` for email bodies as described in “Lossless email bodies”.
 
 ## Lossless email bodies (required)
 
 CLI 11.9.0 JSON stdout was confirmed to insert backslashes before newlines; the same formatter is present in 12.0.0. Redirecting stdout does not bypass this bug. Use `m365 request --filePath` for original message bodies, current drafts, creation responses whose bodies will be reused, and post-write verification. Parse the saved Graph JSON directly, never the CLI stdout body. Re-fetch cached stdout bodies before reuse. Never globally remove backslashes: legitimate paths and code may contain them.
 
-Create a private per-task directory under untracked `out/` using `umask 077` and `mktemp -d`. Set `TASK_DIR` to that directory. Keep directories 0700 and files 0600; use unique filenames, check exit status and validate JSON before reuse. Clean up only task-owned temporary payloads and readbacks after verification. If a write times out, inspect its effects before retrying.
+Create a private temporary directory using `umask 077` and `mktemp -d`; assign its path to `TASK_DIR`. Keep directories 0700 and files 0600; use unique filenames, check exit status and validate JSON before reuse. Clean up only task-owned temporary payloads and readbacks after verification. If a write times out, inspect its effects before retrying.
 
 For formatted replies with quoted history, the default sequence is:
 
@@ -197,7 +197,7 @@ Use Graph `$search` for broad mailbox search. Keep the query quoted inside the U
 
 ```bash
 m365_cli request \
-  --url '@graph/me/messages?$search="anritsu"&$top=20&$select=id,receivedDateTime,from,subject,bodyPreview,isRead,webLink' \
+  --url '@graph/me/messages?$search="project"&$top=20&$select=id,receivedDateTime,from,subject,bodyPreview,isRead,webLink' \
   --output json
 ```
 
@@ -456,9 +456,9 @@ For SharePoint-specific metadata and folders, use `m365 spo file list`, `m365 sp
 
 ## Output handling
 
-- Use `--output json` for metadata; use `--filePath` for email bodies as required below.
+- Use `--output json` for metadata; use `--filePath` for email bodies as described in “Lossless email bodies”.
 - Pipe through `jq`/Python locally to reduce context size before reading results.
-- Store large raw outputs under `out/` and read only summaries/shortlists.
+- Store large raw outputs in the private temporary directory and read only summaries/shortlists.
 - Never store OAuth tokens or secrets in repository-tracked files.
 - Do not include private message bodies or file contents in public/group replies unless the user explicitly asks.
 
