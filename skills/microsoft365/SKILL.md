@@ -29,7 +29,31 @@ For one-off `exec` calls, it is fine to inline:
 npx -y -p @pnp/cli-microsoft365 m365 status --output json
 ```
 
-Always use `--output json` for agent-readable commands.
+Use `--output json` for metadata; use `--filePath` for email bodies as required below.
+
+## Lossless email bodies (required)
+
+CLI 11.9.0 JSON stdout was confirmed to insert backslashes before newlines; the same formatter is present in 12.0.0. Redirecting stdout does not bypass this bug. Use `m365 request --filePath` for original message bodies, current drafts, creation responses whose bodies will be reused, and post-write verification. Parse the saved Graph JSON directly, never the CLI stdout body. Re-fetch cached stdout bodies before reuse. Never globally remove backslashes: legitimate paths and code may contain them.
+
+Create a private per-task directory under untracked `out/` using `umask 077` and `mktemp -d`. Set `TASK_DIR` to that directory. Keep directories 0700 and files 0600; use unique filenames, check exit status and validate JSON before reuse. Clean up only task-owned temporary payloads and readbacks after verification. If a write times out, inspect its effects before retrying.
+
+For formatted replies with quoted history, the default sequence is:
+
+1. Read the original through `--filePath` and confirm account, recipients and conversation.
+2. Call `createReply` with an empty JSON body (`{}`), saving the response with `--filePath "$TASK_DIR/created.json"`. Outlook creates the quoted history.
+3. Parse the draft ID from that file; fetch the latest draft through `--filePath` immediately before editing.
+4. Insert the new HTML inside the existing body, before the quotation. Preserve the surrounding document, signatures, quotation and user edits; do not concatenate complete HTML documents. PATCH the same draft with the merged body, serialized as UTF-8 JSON.
+5. Read back through `--filePath "$TASK_DIR/verified.json"`. Verify draft ID, recipients, conversation, HTML formatting and quoted history. Check for unexpected visible text before the greeting, comparing against the raw pre-edit body; do not require zero backslashes in legitimate content. Inspect attachments separately when relevant.
+
+Controlled tests on 2026-11-23 found that supplying `message.body` directly to `createReply` preserved HTML but omitted the quotation. Supplying plain-text `comment` retained the quotation but collapsed paragraphs. Neither is the default for formatted replies with quotations. Conversation membership does not prove quotation preservation.
+
+Example lossless read (after creating `TASK_DIR`):
+
+```bash
+m365_cli request --url "@graph/me/messages/$DRAFT_ID" --filePath "$TASK_DIR/current.json" --output none
+```
+
+`--output json` remains suitable for metadata; any response body used to build or verify a message must come from the raw file instead. These rules take precedence over output flags in metadata examples below.
 
 ## Authentication model
 
@@ -184,7 +208,8 @@ If `$search` fails because of tenant/search limitations, fall back to date/folde
 ```bash
 m365_cli request \
   --url "@graph/me/messages/$MESSAGE_ID?\$select=id,receivedDateTime,from,toRecipients,ccRecipients,subject,body,bodyPreview,hasAttachments,isRead,webLink" \
-  --output json
+  --filePath "$TASK_DIR/original.json" \
+  --output none
 ```
 
 ### Mark message read/unread
@@ -236,28 +261,9 @@ Use a private, per-task directory for payloads and readbacks containing mailbox 
 
 #### Reply draft
 
-For a formatted reply, `POST /me/messages/{originalId}/createReply` uses a `message` wrapper. Do not use a plain-text `comment` for rich-text replies; line breaks can collapse. Do not submit both `comment` and `message.body`.
+Follow the lossless empty-createReply → raw read → HTML merge → PATCH → raw readback procedure above. Do not supply `message.body` at creation when quoted history must be retained. Do not use plain-text `comment` for formatted replies or submit both fields.
 
-```bash
-cat > /tmp/m365-reply.json <<'JSON'
-{
-  "message": {
-    "body": {
-      "contentType": "HTML",
-      "content": "<p>Hello,</p><ul><li><strong>Topic:</strong> detail</li></ul>"
-    }
-  }
-}
-JSON
-m365_cli request \
-  --method post \
-  --url "@graph/me/messages/$ORIGINAL_ID/createReply" \
-  --body @/tmp/m365-reply.json \
-  --content-type 'application/json' \
-  --output json
-```
-
-Preserve the intended recipients, subject and quoted thread. Do not assume that supplying `message.body` preserves the quoted message or that reply creation copies attachments. Inspect the generated draft and attachment collection, including inline images, and retain or restore required material before declaring it complete. Use a reply operation rather than a new unrelated message when conversation continuity matters.
+Inspect the generated draft and attachment collection, including inline images. Reply creation does not guarantee that attachments are copied. Preserve intended recipients, subject and quotation. Use a reply operation rather than an unrelated new message.
 
 #### Existing draft: PATCH first
 
@@ -294,7 +300,8 @@ After creation or PATCH, read the saved draft rather than trusting the write res
 m365_cli request \
   --method get \
   --url "@graph/me/messages/$DRAFT_ID?\$select=id,isDraft,subject,body,toRecipients,ccRecipients,bccRecipients,conversationId,hasAttachments,webLink,lastModifiedDateTime" \
-  --output json
+  --filePath "$TASK_DIR/verified.json" \
+  --output none
 ```
 
 Check `isDraft`, expected ID (unchanged for PATCH), subject, recipients, conversation, HTML content type and the expected paragraph/list/bold tags. Inspect attachments separately when relevant; `hasAttachments` alone does not account for inline-only attachments. Inspect rendering when possible, and distinguish HTML/readback verification from a visual check. Return the saved draft's Outlook `webLink`; after replacement return the new link, never the deleted draft's link. Never send as part of verification.
@@ -449,7 +456,7 @@ For SharePoint-specific metadata and folders, use `m365 spo file list`, `m365 sp
 
 ## Output handling
 
-- Always use `--output json` for agent-readable commands.
+- Use `--output json` for metadata; use `--filePath` for email bodies as required below.
 - Pipe through `jq`/Python locally to reduce context size before reading results.
 - Store large raw outputs under `out/` and read only summaries/shortlists.
 - Never store OAuth tokens or secrets in repository-tracked files.
